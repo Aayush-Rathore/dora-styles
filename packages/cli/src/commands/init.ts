@@ -1,13 +1,9 @@
 import inquirer from "inquirer";
 import fs from "fs-extra";
 import path from "path";
+import { fetchFile } from "../utils/fetchFile";
 
-async function fetchFile(url: string, dest: string) {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`Failed to fetch ${url}`);
-    const text = await res.text();
-    await fs.outputFile(dest, text);
-}
+
 
 export async function init() {
     const answers = await inquirer.prompt<{
