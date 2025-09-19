@@ -31,8 +31,8 @@ export async function init() {
     );
 
     await fetchFile(
-        `${RAW_BASE}/packages/scripts/compile.js`,
-        path.join(configPath, "compile.js")
+        `${RAW_BASE}/packages/styles/utils.css`,
+        path.join(configPath, "utils.css")
     );
 
     console.log("✅ Dora Styles initialized at:", configPath);
