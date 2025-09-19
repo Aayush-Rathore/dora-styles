@@ -1,8 +1,14 @@
 import fs from "fs-extra";
 import path from "path";
-import { fetchFile } from "../utils/fetchFile";
 
-export async function add(component: string) {
+async function fetchFile(url: string, dest: string) {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Failed to fetch ${url}`);
+    const text = await res.text();
+    await fs.outputFile(dest, text);
+}
+
+export async function add(components: string[]) {
     const projectRoot = process.cwd();
     const configFilePath = path.join(projectRoot, "dora-styles.json");
 
@@ -14,30 +20,36 @@ export async function add(component: string) {
     const config = await fs.readJson(configFilePath);
     const configPath = path.resolve(projectRoot, config.configPath);
     const indexPath = path.join(configPath, "index.css");
+    const componentsDir = path.join(configPath, "components");
 
-    const componentPath = path.join(configPath, `${component}.css`);
+    await fs.ensureDir(componentsDir);
 
     const RAW_BASE =
-        "https://raw.githubusercontent.com/Aayush-Rathore/dora-styles/dora-styles";
-    const remoteUrl = `${RAW_BASE}/packages/styles/components/${component}.css`;
+        "https://raw.githubusercontent.com/Aayush-Rathore/dora-styles/dora-styles/packages/styles/components";
 
-    try {
-        await fetchFile(remoteUrl, componentPath);
-        console.log(`✅ Added component: ${component}.css`);
-    } catch (err: any) {
-        console.error(`❌ Failed to fetch component "${component}":`, err.message);
-        return;
-    }
+    for (const component of components) {
+        const componentPath = path.join(componentsDir, `${component}.css`);
+        const remoteUrl = `${RAW_BASE}/${component}.css`;
 
-    let indexContent = "";
-    if (await fs.pathExists(indexPath)) {
-        indexContent = await fs.readFile(indexPath, "utf-8");
-    }
+        try {
+            await fetchFile(remoteUrl, componentPath);
+            console.log(`✅ Added component: ${component}.css`);
+        } catch (err: any) {
+            console.error(`❌ Failed to fetch component "${component}":`, err.message);
+            continue;
+        }
 
-    const importLine = `@import "./${component}.css";`;
-    if (!indexContent.includes(importLine)) {
-        indexContent += `\n${importLine}\n`;
-        await fs.writeFile(indexPath, indexContent);
-        console.log(`🔗 Linked ${component}.css in index.css`);
+        // Update index.css
+        let indexContent = "";
+        if (await fs.pathExists(indexPath)) {
+            indexContent = await fs.readFile(indexPath, "utf-8");
+        }
+
+        const importLine = `@import "./components/${component}.css";`;
+        if (!indexContent.includes(importLine)) {
+            indexContent += `\n${importLine}\n`;
+            await fs.writeFile(indexPath, indexContent);
+            console.log(`🔗 Linked ${component}.css in index.css`);
+        }
     }
 }
