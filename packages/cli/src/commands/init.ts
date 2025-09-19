@@ -10,34 +10,37 @@ async function fetchFile(url: string, dest: string) {
 }
 
 export async function init() {
-    const answers = await inquirer.prompt<{ globalCss: string; configPath: string }>([
-        {
-            type: "input",
-            name: "globalCss",
-            message: "Where is your global.css located?",
-            default: "src/styles/global.css",
-        },
+    const answers = await inquirer.prompt<{ configPath: string; }>([
         {
             type: "input",
             name: "configPath",
-            message: "Where do you want to keep dora-styles config?",
-            default: "src/styles/dora-styles",
+            message: "Where do you want to keep dora-styles stuff?",
+            default: "src/dora-styles",
         },
     ]);
 
     const configPath = path.resolve(process.cwd(), answers.configPath);
+    const globalCssPath = path.resolve(process.cwd(), answers.configPath);
     await fs.ensureDir(configPath);
 
+    const RAW_BASE = "https://raw.githubusercontent.com/Aayush-Rathore/dora-styles/dora-styles";
+
     await fetchFile(
-        "https://raw.githubusercontent.com/Aayush-Rathore/dora-styles/main/packages/styles/variables.css",
-        path.join(configPath, "variables.css")
+        `${RAW_BASE}/packages/styles/variables.css`,
+        path.join(globalCssPath, "variables.css")
     );
 
     await fetchFile(
-        "https://raw.githubusercontent.com/Aayush-Rathore/dora-styles/main/packages/scripts/compile.js",
+        `${RAW_BASE}/packages/scripts/compile.js`,
         path.join(configPath, "compile.js")
     );
 
     console.log("✅ Dora Styles initialized at:", configPath);
     console.log("🚧 Link your global.css to your index file if needed");
+
+    const projectRoot = process.cwd();
+    const configFilePath = path.join(projectRoot, "dora-styles.json");
+    await fs.writeJson(configFilePath, answers, { spaces: 2 });
+
+    console.log(`✅ Created dora-styles.json at ${configFilePath}`);
 }
